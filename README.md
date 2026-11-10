@@ -2,8 +2,6 @@
 
 A small data pipeline that collects public job postings, cleans them, and shows which skills employers ask for, by role family and by city.
 
-**Live results page:** https://manaswichowdary.github.io/marketlens/
-
 I built it to practice the parts of data work that tutorials skip: messy input, duplicate records, checks that fail loudly, and being honest about what the data can and cannot tell you.
 
 ## What it does
@@ -25,7 +23,7 @@ The pipeline runs every day at 13:00 UTC (6 AM in Phoenix) on AWS Lambda, starte
 - The dbt tests do not run inside Lambda, because dbt is too heavy to package. The health check covers the same row count and freshness rules there. dbt still runs on my laptop with `make dbt`.
 - A scheduled run is not proof until it has run on its own. The first scheduled run is November 11, 2026.
 
-Run everything with `make daily`, or one step at a time: `make ingest`, `make dedupe`, `make skills`, `make trends`, `make dbt`. Tests: `make test` (69 tests, including the Lambda handler and the deploy script on a fake AWS).
+Run everything with `make daily`, or one step at a time: `make ingest`, `make dedupe`, `make skills`, `make trends`, `make dbt`. Tests: `make test` (79 tests, including the Lambda handler and the deploy script on a fake AWS).
 
 ## Results on real data (one run, November 10, 2026)
 
@@ -57,7 +55,7 @@ Example output: Solutions Engineering jobs name Python in 60% of postings, AWS i
 - Remotive returned only 13 postings, so almost all data comes from Greenhouse boards.
 - Companies on the boards are the ones I chose, so results describe those 36 companies, not the whole job market.
 - Results page: `make site` builds `docs/index.html` from the database (top skills, role families, cities). It shows no trend chart until there are 14 days of daily snapshots, and says so on the page.
-- Not built yet: an LLM fallback for jobs with no skill found. Real trends need weeks of daily snapshots first, and the daily run only started on November 10, 2026.
+- LLM fallback: `make llm LIMIT=25` asks Claude Haiku 5.5 for the skills in technical jobs where the dictionary found none. A skill only counts if its words appear in the posting, results go in separate tables (`job_skills_llm`), and they are not mixed into the numbers above. A spending cap stops each run. First full run: it covered all 261 technical jobs where the dictionary found nothing (7.4% of 3,527 technical jobs). 73 of them (28%) got at least one skill that is named in the posting, 188 got none, and 11 suggested skills were thrown out because the words were not in the posting. That would lift the share of all jobs with a skill from 68.8% to about 69.7%, a small gain, so the headline numbers still use the dictionary alone. The run cost about $0.08 (worked out from token counts at $0.10 and $0.50 per million tokens). Its best use is finding words the dictionary is missing. Real trends need weeks of daily snapshots first, and the daily run only started on November 10, 2026.
 
 ## Setup
 
@@ -79,5 +77,6 @@ Optional: put `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` in a `.env` file and use `--s
 - `marketlens/skills_dictionary.py`, `skills.py`, `extract.py` skill extraction
 - `marketlens/trends.py` role families, cities, trends, daily snapshot
 - `marketlens/site.py` builds the static results page in `docs/index.html` (`make site`)
+- `marketlens/llm_fallback.py` optional: asks Claude Haiku for skills in technical jobs where the dictionary found none (`make llm LIMIT=25`)
 - `dbt/` data checks
 - `tests/` unit tests
