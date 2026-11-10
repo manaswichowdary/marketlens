@@ -30,12 +30,8 @@ flexport
 gusto
 carta
 webflow
-amplitude
 fivetran
-dbtlabs
-grammarly
 vercel
 airtable
 checkr
-plaid
 chime
