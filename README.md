@@ -2,6 +2,8 @@
 
 A small data pipeline that collects public job postings, cleans them, and shows which skills employers ask for, by role family and by city.
 
+**Live results page:** https://manaswichowdary.github.io/marketlens/
+
 I built it to practice the parts of data work that tutorials skip: messy input, duplicate records, checks that fail loudly, and being honest about what the data can and cannot tell you.
 
 ## What it does
