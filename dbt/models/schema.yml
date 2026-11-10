@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: stg_jobs
+    description: Cleaned jobs, one row per job.
+    columns:
+      - name: job_key
+        tests: [not_null, unique]
+      - name: source
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["greenhouse", "remotive", "adzuna"]
+      - name: title
+        tests: [not_null]
+      - name: company
+        tests: [not_null]
+      - name: url
+        tests: [not_null]
+      - name: fetched_at
+        tests: [not_null]

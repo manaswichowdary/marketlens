@@ -1,0 +1,8 @@
+# Points dbt at the DuckDB file the ingest step writes. Run dbt from the dbt folder: dbt build --profiles-dir .
+marketlens:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../data/marketlens.duckdb
+      threads: 1

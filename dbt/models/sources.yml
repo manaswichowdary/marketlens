@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Tables written by the Python ingest and dedupe steps.
+    schema: main
+    tables:
+      - name: jobs
+        description: Postings with duplicates removed (a view built by marketlens.dedupe).
+      - name: runs
+        description: One row per ingest run, including failed runs.
