@@ -4,6 +4,8 @@
 
 A small data pipeline that collects public job postings, cleans them, and shows which skills employers ask for, by role family and by city.
 
+**Live results:** [manaswichowdary.github.io/marketlens](https://manaswichowdary.github.io/marketlens/)
+
 I built it to practice the parts of data work that tutorials skip: messy input, duplicate records, checks that fail loudly, and being honest about what the data can and cannot tell you.
 
 **The problem.** Job postings are messy. The same job shows up twice, company boilerplate makes a skill look more popular than it is, and the postings that are still open are not a fair sample of the market. A skills chart built without handling those looks convincing and is wrong.
@@ -29,7 +31,7 @@ flowchart LR
 ## What it does
 
 1. **Ingest.** Pulls postings from the public Greenhouse boards API (36 company boards) and Remotive. Adzuna is supported but optional, because its free plan only allows 25 calls. Every raw response is saved as JSON under `data/raw/<source>/` before anything is changed.
-2. **Store.** Writes to DuckDB. Re-running never creates repeats, because rows are keyed by (source, source_id).
+2. **Store.** Writes to DuckDB. Rerunning never creates repeats, because rows are keyed by (source, source_id).
 3. **Dedupe.** The same job can appear more than once, so postings are matched on cleaned company, title and location.
 4. **Checks.** dbt tests run on the data: not null, unique, allowed source values, freshness, and a check that the row count did not suddenly collapse.
 5. **Skills.** A dictionary of about 170 skills is matched against each posting, with context rules for words that mean something else in plain English (Go, R, C, Swift, React, Spring, Excel, Spark).
