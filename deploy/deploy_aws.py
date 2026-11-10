@@ -168,8 +168,9 @@ def deploy(session, region, bucket, zip_path, slack_webhook=""):
         env["SLACK_WEBHOOK_URL"] = slack_webhook
     ensure_log_retention(logs)
     function_arn = ensure_function(lam, role_arn, bucket, key, env, role_is_new=created)
+    saved = lam.get_function_configuration(FunctionName=FUNCTION).get("Environment", {}).get("Variables", {})
     ensure_schedule(events, lam, function_arn)
-    return {"bucket": bucket, "function": function_arn, "schedule": SCHEDULE, "slack": bool(slack_webhook)}
+    return {"bucket": bucket, "function": function_arn, "schedule": SCHEDULE, "slack": bool(saved.get("SLACK_WEBHOOK_URL"))}
 
 
 def invoke_once(session):
@@ -198,7 +199,7 @@ def main():
     info = deploy(session, args.region, bucket, args.zip, os.environ.get("SLACK_WEBHOOK_URL", ""))
     print("deployed:", json.dumps(info, indent=2))
     if not info["slack"]:
-        print("note: SLACK_WEBHOOK_URL was not set, so problems will only show in the function logs.")
+        print("note: no Slack webhook is saved on the function, so problems will only show in the function logs.")
     if args.invoke:
         print("running once (this can take a couple of minutes)...")
         error, body = invoke_once(session)
