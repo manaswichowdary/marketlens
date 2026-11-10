@@ -12,6 +12,8 @@ trends:   ## skills by role and city, rising and falling, and today's snapshot
 	PYTHONPATH=. $(PY) -m marketlens.trends
 dbt:      ## data quality tests: nulls, unique keys, freshness, row count drop
 	cd dbt && dbt build --profiles-dir .
-daily: ingest dedupe skills trends dbt  ## what the scheduled job will run
+alert:    ## check the latest runs and send a Slack message if something is wrong
+	PYTHONPATH=. $(PY) -m marketlens.alerts
+daily: ingest dedupe skills trends dbt alert  ## what the scheduled job will run
 
-.PHONY: test ingest dedupe skills trends dbt daily
+.PHONY: test ingest dedupe skills trends dbt alert daily
