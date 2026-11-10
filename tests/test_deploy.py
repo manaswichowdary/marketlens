@@ -32,8 +32,10 @@ def test_deploy_creates_everything(aws, tmp_path):
 
     block = s3.get_public_access_block(Bucket=BUCKET)["PublicAccessBlockConfiguration"]
     assert all(block.values())
-    rule = s3.get_bucket_lifecycle_configuration(Bucket=BUCKET)["Rules"][0]
-    assert rule["Filter"]["Prefix"] == "raw/" and rule["Expiration"]["Days"] == 30
+    rules = {r["ID"]: r for r in s3.get_bucket_lifecycle_configuration(Bucket=BUCKET)["Rules"]}
+    assert rules["expire-raw-files"]["Filter"]["Prefix"] == "raw/" and rules["expire-raw-files"]["Expiration"]["Days"] == 30
+    assert rules["expire-old-versions"]["NoncurrentVersionExpiration"]["NoncurrentDays"] == 7
+    assert s3.get_bucket_versioning(Bucket=BUCKET)["Status"] == "Enabled"
 
     cfg = lam.get_function_configuration(FunctionName=d.FUNCTION)
     assert cfg["Handler"] == "marketlens.lambda_handler.handler"
@@ -79,3 +81,11 @@ def test_package_contains_the_code_and_not_tests(tmp_path):
     names = zipfile.ZipFile(out).namelist()
     assert "marketlens/lambda_handler.py" in names
     assert not any("__pycache__" in n for n in names)
+
+
+def test_a_redeploy_without_a_webhook_keeps_the_saved_one(aws, tmp_path):
+    z = tiny_zip(tmp_path)
+    d.deploy(aws, REGION, BUCKET, z, "https://hooks.example/x")
+    d.deploy(aws, REGION, BUCKET, z)                        # no webhook supplied this time
+    cfg = aws.client("lambda").get_function_configuration(FunctionName=d.FUNCTION)
+    assert cfg["Environment"]["Variables"]["SLACK_WEBHOOK_URL"] == "https://hooks.example/x"

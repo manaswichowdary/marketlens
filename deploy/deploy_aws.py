@@ -70,9 +70,14 @@ def ensure_bucket(s3, name, region):
             raise
     s3.put_public_access_block(Bucket=name, PublicAccessBlockConfiguration={
         "BlockPublicAcls": True, "IgnorePublicAcls": True, "BlockPublicPolicy": True, "RestrictPublicBuckets": True})
-    s3.put_bucket_lifecycle_configuration(Bucket=name, LifecycleConfiguration={"Rules": [{
-        "ID": "expire-raw-files", "Status": "Enabled", "Filter": {"Prefix": "raw/"},
-        "Expiration": {"Days": RAW_DAYS}}]})
+    # Versioning protects the database file from a bad overwrite. Old versions are removed after a week so the
+    # 100 MB file does not pile up, and raw files expire after RAW_DAYS days.
+    s3.put_bucket_versioning(Bucket=name, VersioningConfiguration={"Status": "Enabled"})
+    s3.put_bucket_lifecycle_configuration(Bucket=name, LifecycleConfiguration={"Rules": [
+        {"ID": "expire-raw-files", "Status": "Enabled", "Filter": {"Prefix": "raw/"},
+         "Expiration": {"Days": RAW_DAYS}},
+        {"ID": "expire-old-versions", "Status": "Enabled", "Filter": {"Prefix": ""},
+         "NoncurrentVersionExpiration": {"NoncurrentDays": 7}}]})
 
 
 def ensure_role(iam, bucket):
@@ -98,6 +103,13 @@ def ensure_role(iam, bucket):
 
 
 def ensure_function(lam, role_arn, bucket, key, env, role_is_new=False):
+    if "SLACK_WEBHOOK_URL" not in env:      # a redeploy must not silently drop the webhook that is already saved
+        try:
+            saved = lam.get_function_configuration(FunctionName=FUNCTION).get("Environment", {}).get("Variables", {})
+            if saved.get("SLACK_WEBHOOK_URL"):
+                env = {**env, "SLACK_WEBHOOK_URL": saved["SLACK_WEBHOOK_URL"]}
+        except ClientError:
+            pass
     config = dict(Runtime=RUNTIME, Role=role_arn, Handler="marketlens.lambda_handler.handler", Timeout=900,
                   MemorySize=2048, EphemeralStorage={"Size": 2048}, Environment={"Variables": env})
     code = {"S3Bucket": bucket, "S3Key": key}
