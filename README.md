@@ -1,8 +1,30 @@
 # MarketLens
 
+[![tests](https://github.com/manaswichowdary/marketlens/actions/workflows/ci.yml/badge.svg)](https://github.com/manaswichowdary/marketlens/actions/workflows/ci.yml)
+
 A small data pipeline that collects public job postings, cleans them, and shows which skills employers ask for, by role family and by city.
 
 I built it to practice the parts of data work that tutorials skip: messy input, duplicate records, checks that fail loudly, and being honest about what the data can and cannot tell you.
+
+**The problem.** Job postings are messy. The same job shows up twice, company boilerplate makes a skill look more popular than it is, and the postings that are still open are not a fair sample of the market. A skills chart built without handling those looks convincing and is wrong.
+
+**The result.** On one real run: 8,224 postings collected, 8,020 unique jobs after dedupe, 68.8% with at least one skill found, and a daily run on AWS that alerts Slack when something looks wrong.
+
+**One hard decision.** When are two postings the same job? My first rule merged different teams at the same company and reported 8.3% duplicates. After reading the merged pairs and tightening the rule, the measured rate was 2.5%.
+
+## How the parts fit together
+
+```mermaid
+flowchart LR
+    EB["EventBridge, daily 13:00 UTC"] --> L["Lambda: marketlens-daily"]
+    GH["Greenhouse boards API"] --> L
+    RM["Remotive API"] --> L
+    S3[("S3: DuckDB file and raw JSON")] <--> L
+    L --> I["ingest"] --> D["dedupe"] --> K["skills"] --> T["trends"]
+    T --> H["health check"]
+    H -->|"only when a problem is found"| SL["Slack"]
+    T --> P["make site on my laptop: docs/index.html on GitHub Pages"]
+```
 
 ## What it does
 
@@ -56,6 +78,14 @@ Example output: Solutions Engineering jobs name Python in 60% of postings, AWS i
 - Companies on the boards are the ones I chose, so results describe those 36 companies, not the whole job market.
 - Results page: `make site` builds `docs/index.html` from the database (top skills, role families, cities). It shows no trend chart until there are 14 days of daily snapshots, and says so on the page.
 - LLM fallback: `make llm LIMIT=25` asks Claude Haiku 5.5 for the skills in technical jobs where the dictionary found none. A skill only counts if its words appear in the posting, results go in separate tables (`job_skills_llm`), and they are not mixed into the numbers above. A spending cap stops each run. First full run: it covered all 261 technical jobs where the dictionary found nothing (7.4% of 3,527 technical jobs). 73 of them (28%) got at least one skill that is named in the posting, 188 got none, and 11 suggested skills were thrown out because the words were not in the posting. That would lift the share of all jobs with a skill from 68.8% to about 69.7%, a small gain, so the headline numbers still use the dictionary alone. The run cost about $0.08 (worked out from token counts at $0.10 and $0.50 per million tokens). Its best use is finding words the dictionary is missing. Real trends need weeks of daily snapshots first, and the daily run only started on November 10, 2026.
+
+## What I would do next
+
+- Check the first scheduled run (November 11) and let the daily snapshots build up for 14 days, so the results page can draw a real trend.
+- Add the clearly technical terms the LLM test found to the dictionary (for example api, mcp, rbac, sso, observability), then measure how much the 68.8% moves.
+- Tighten the role rules. Sales, policy and communications jobs with "security" in the title currently land in the Security family.
+- Rebuild the results page automatically after each daily run, instead of by hand with `make site`.
+- Run the dbt checks in the scheduled run, which means packaging dbt differently.
 
 ## Setup
 
