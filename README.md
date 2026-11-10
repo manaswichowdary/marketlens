@@ -6,7 +6,7 @@ I built it to practice the parts of data work that tutorials skip: messy input, 
 
 ## What it does
 
-1. **Ingest.** Pulls postings from the public Greenhouse boards API (40 company boards) and Remotive. Adzuna is supported but optional, because its free plan only allows 25 calls. Every raw response is saved as JSON under `data/raw/<source>/` before anything is changed.
+1. **Ingest.** Pulls postings from the public Greenhouse boards API (36 company boards) and Remotive. Adzuna is supported but optional, because its free plan only allows 25 calls. Every raw response is saved as JSON under `data/raw/<source>/` before anything is changed.
 2. **Store.** Writes to DuckDB. Re-running never creates repeats, because rows are keyed by (source, source_id).
 3. **Dedupe.** The same job can appear more than once, so postings are matched on cleaned company, title and location.
 4. **Checks.** dbt tests run on the data: not null, unique, allowed source values, freshness, and a check that the row count did not suddenly collapse.
@@ -53,8 +53,9 @@ Example output: Solutions Engineering jobs name Python in 60% of postings, AWS i
 - Commas in locations are ambiguous, so a few cities may be wrong.
 - The fuzzy duplicate rule found 0 merges on real data. Exact matching did all of the work.
 - Remotive returned only 13 postings, so almost all data comes from Greenhouse boards.
-- Companies on the boards are the ones I chose, so results describe those 40 companies, not the whole job market.
-- Not built yet: a web page for the trends and an LLM fallback for jobs with no skill found. Real trends need weeks of daily snapshots first, and the daily run only started on November 10, 2026.
+- Companies on the boards are the ones I chose, so results describe those 36 companies, not the whole job market.
+- Results page: `make site` builds `docs/index.html` from the database (top skills, role families, cities). It shows no trend chart until there are 14 days of daily snapshots, and says so on the page.
+- Not built yet: an LLM fallback for jobs with no skill found. Real trends need weeks of daily snapshots first, and the daily run only started on November 10, 2026.
 
 ## Setup
 
@@ -75,5 +76,6 @@ Optional: put `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` in a `.env` file and use `--s
 - `marketlens/dedupe.py` duplicate finder
 - `marketlens/skills_dictionary.py`, `skills.py`, `extract.py` skill extraction
 - `marketlens/trends.py` role families, cities, trends, daily snapshot
+- `marketlens/site.py` builds the static results page in `docs/index.html` (`make site`)
 - `dbt/` data checks
 - `tests/` unit tests
