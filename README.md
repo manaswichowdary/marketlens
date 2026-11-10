@@ -13,6 +13,16 @@ I built it to practice the parts of data work that tutorials skip: messy input, 
 5. **Skills.** A dictionary of about 170 skills is matched against each posting, with context rules for words that mean something else in plain English (Go, R, C, Swift, React, Spring, Excel, Spark).
 6. **Trends.** Top skills by role family and by city, plus a rising and falling view. A daily snapshot table is saved so real trends can be computed after several weeks.
 
+## Daily run on AWS
+
+The pipeline runs every day at 13:00 UTC (6 AM in Phoenix) on AWS Lambda, started by an EventBridge schedule. Lambda starts empty each time, so the DuckDB file lives in S3: the function downloads it, runs ingest, dedupe, skills and trends, checks that the run looks healthy, posts to Slack if it does not, and uploads the file again. Raw JSON from each run is kept in S3 and expires after 30 days.
+
+- Deploy with `python deploy/deploy_aws.py` (see the file for what it creates). It is safe to run twice. The role it creates can only read and write its own bucket and write its own logs.
+- One real run in AWS matched my laptop: 8,221 postings, 203 duplicates (2.5%), 5,516 jobs with a skill.
+- The health check in `marketlens/alerts.py` flags a failed run, data older than 36 hours, a fetch that drops by more than half, and more than 5 skipped company boards. It sends a Slack message only when something is wrong, and it also makes the Lambda run count as an error.
+- The dbt tests do not run inside Lambda, because dbt is too heavy to package. The health check covers the same row count and freshness rules there. dbt still runs on my laptop with `make dbt`.
+- A scheduled run is not proof until it has run on its own. The first scheduled run is November 11, 2026.
+
 Run everything with `make daily`, or one step at a time: `make ingest`, `make dedupe`, `make skills`, `make trends`, `make dbt`. Tests: `make test` (44 tests).
 
 ## Results on real data (one run, November 10, 2026)
@@ -44,7 +54,7 @@ Example output: Solutions Engineering jobs name Python in 60% of postings, AWS i
 - The fuzzy duplicate rule found 0 merges on real data. Exact matching did all of the work.
 - Remotive returned only 13 postings, so almost all data comes from Greenhouse boards.
 - Companies on the boards are the ones I chose, so results describe those 40 companies, not the whole job market.
-- Not built yet: Slack alerts for failed runs, a web page for the trends, a scheduled daily run on AWS, and an LLM fallback for jobs with no skill found. Real trends need weeks of daily snapshots first.
+- Not built yet: a web page for the trends and an LLM fallback for jobs with no skill found. Real trends need weeks of daily snapshots first, and the daily run only started on November 10, 2026.
 
 ## Setup
 

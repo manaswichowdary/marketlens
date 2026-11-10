@@ -108,7 +108,9 @@ def ensure_function(lam, role_arn, bucket, key, env, role_is_new=False):
             raise
         for attempt in range(8):    # a brand new role can take a few seconds before Lambda may use it
             try:
-                return lam.create_function(FunctionName=FUNCTION, Code=code, **config)["FunctionArn"]
+                arn = lam.create_function(FunctionName=FUNCTION, Code=code, **config)["FunctionArn"]
+                lam.get_waiter("function_active_v2").wait(FunctionName=FUNCTION)   # a new function starts as Pending
+                return arn
             except ClientError as err:
                 if "cannot be assumed" not in str(err) or attempt == 7:
                     raise
@@ -160,6 +162,7 @@ def deploy(session, region, bucket, zip_path, slack_webhook=""):
 
 def invoke_once(session):
     lam = session.client("lambda", config=Config(read_timeout=900, retries={"max_attempts": 0}))
+    lam.get_waiter("function_active_v2").wait(FunctionName=FUNCTION)
     out = lam.invoke(FunctionName=FUNCTION, InvocationType="RequestResponse", LogType="Tail")
     body = out["Payload"].read().decode()
     return out.get("FunctionError"), body
