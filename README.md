@@ -23,7 +23,7 @@ The pipeline runs every day at 13:00 UTC (6 AM in Phoenix) on AWS Lambda, starte
 - The dbt tests do not run inside Lambda, because dbt is too heavy to package. The health check covers the same row count and freshness rules there. dbt still runs on my laptop with `make dbt`.
 - A scheduled run is not proof until it has run on its own. The first scheduled run is November 11, 2026.
 
-Run everything with `make daily`, or one step at a time: `make ingest`, `make dedupe`, `make skills`, `make trends`, `make dbt`. Tests: `make test` (44 tests).
+Run everything with `make daily`, or one step at a time: `make ingest`, `make dedupe`, `make skills`, `make trends`, `make dbt`. Tests: `make test` (69 tests, including the Lambda handler and the deploy script on a fake AWS).
 
 ## Results on real data (one run, November 10, 2026)
 
