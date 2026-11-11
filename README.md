@@ -45,7 +45,7 @@ The pipeline runs every day at 13:00 UTC (6 AM in Phoenix) on AWS Lambda, starte
 - One real run in AWS matched my laptop: 8,221 postings, 203 duplicates (2.5%), 5,516 jobs with a skill.
 - The health check in `marketlens/alerts.py` flags a failed run, data older than 36 hours, a fetch that drops by more than half, and more than 5 skipped company boards. It sends a Slack message only when something is wrong, and it also makes the Lambda run count as an error.
 - The dbt tests do not run inside Lambda, because dbt is too heavy to package. The health check covers the same row count and freshness rules there. dbt still runs on my laptop with `make dbt`.
-- A scheduled run is not proof until it has run on its own. The first scheduled run is November 11, 2026.
+- The first scheduled run happened on its own on November 11, 2026 at 13:00 UTC (6 AM in Phoenix). It took 107 seconds, fetched 8,236 Greenhouse postings, added 140 new rows and finished with no error in the log. One run is a start, not a track record, so the trend views stay empty until there are 14 days of snapshots.
 
 Run everything with `make daily`, or one step at a time: `make ingest`, `make dedupe`, `make skills`, `make trends`, `make dbt`. Tests: `make test` (79 tests, including the Lambda handler and the deploy script on a fake AWS).
 
